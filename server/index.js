@@ -1,6 +1,6 @@
 import express from "express";
 
-import sequelize from "./util/database.js";
+import initializeDatabase from "./util/database.js";
 import Sensor from "./models/sensor.js";
 import SensorReading from "./models/sensorReading.js";
 import HourlyFaceSummary from "./models/hourlyFaceSummary.js";
@@ -16,11 +16,14 @@ app.use(express.urlencoded({ extended: true }));
 SensorReading.belongsTo(Sensor, { constraints: true, onDelete: "CASCADE" });
 MalfunctionLog.belongsTo(Sensor, { constraints: true, onDelete: "CASCADE" });
 
-
+const sequelize = initializeDatabase;
 sequelize
-  .sync()
+  .sync({ force: true })
   .then((result) => {
     console.log(result);
+    Sensor.create({ face: 'north', createdAt: Date.now() });
+    
+    
     app.listen(port, () => {
       console.log(`Server is listening on ${port}`);
     });

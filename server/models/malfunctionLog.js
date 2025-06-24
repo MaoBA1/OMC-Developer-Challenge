@@ -1,5 +1,8 @@
 import { INTEGER, ENUM, FLOAT } from "sequelize";
-import sequelize from "../util/database";
+import initializeDatabase from "../util/database.js";
+import facesEnum from "../util/facesEnum.js";
+
+const sequelize = initializeDatabase;
 
 const MalfunctionLog = sequelize.define("malfunction-log", {
   id: {
@@ -8,7 +11,7 @@ const MalfunctionLog = sequelize.define("malfunction-log", {
     allowNull: false,
     primaryKey: true,
   },
-  face: ENUM,
+  face: ENUM(...facesEnum),
   hour: INTEGER,
   avgTemperature: FLOAT,
   deviationPercentage: FLOAT,
