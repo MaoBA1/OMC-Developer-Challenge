@@ -1,31 +1,51 @@
 import express from "express";
-
-import initializeDatabase from "./util/database.js";
+import dotenv from "dotenv";
+import database from "./util/database.js";
 import Sensor from "./models/sensor.js";
 import SensorReading from "./models/sensorReading.js";
 import HourlyFaceSummary from "./models/hourlyFaceSummary.js";
 import MalfunctionLog from "./models/malfunctionLog.js";
+import { getUnixSeconds } from "./util/functions.js";
+import System from "./util/system.js";
+
+dotenv.config();
+console.log(
+  process.env.PORT,
+  process.env.DB_HOST,
+  process.env.DB_USER,
+  process.env.DB_PASS,
+  process.env.DB_NAME
+);
 
 const app = express();
-const port = 8080;
+const port = process.env.PORT || 8080;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
 SensorReading.belongsTo(Sensor, { constraints: true, onDelete: "CASCADE" });
 MalfunctionLog.belongsTo(Sensor, { constraints: true, onDelete: "CASCADE" });
 
-const sequelize = initializeDatabase;
-sequelize
-  .sync({ force: true })
-  .then((result) => {
-    console.log(result);
-    Sensor.create({ face: 'north', createdAt: Date.now() });
-    
-    
-    app.listen(port, () => {
-      console.log(`Server is listening on ${port}`);
+database
+  .initializeDatabase()
+  .then(() => {
+    database
+    .sequelize
+    .sync()
+    .then(async(result) => {
+      let sensors = await System.getAllSensors();
+      if(sensors.length === 0) {
+        await System.systemInitiator();
+        sensors = await System.getAllSensors();
+      }
+      console.log(sensors.length);
+      // System.sensorReadingGenerator();
+      const sensorLogs = await SensorReading.findAll();
+      console.log(sensorLogs.length);
+      
+      app.listen(port, () => {
+        console.log(`Server is listening on ${port}`);
+      });
     });
   })
   .catch((error) => {

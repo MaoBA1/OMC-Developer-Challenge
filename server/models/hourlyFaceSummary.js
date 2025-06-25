@@ -1,8 +1,8 @@
-import { INTEGER, ENUM, FLOAT } from "sequelize";
-import initializeDatabase from "../util/database.js";
+import { INTEGER, ENUM, FLOAT, BIGINT } from "sequelize";
+import database from "../util/database.js";
 import facesEnum from "../util/facesEnum.js";
 
-const sequelize = initializeDatabase;
+const sequelize = database.sequelize;
 
 const HourlyFaceSummary = sequelize.define("hourly-face-summary", {
     id: {
@@ -11,9 +11,18 @@ const HourlyFaceSummary = sequelize.define("hourly-face-summary", {
         allowNull: false,
         primaryKey: true
     },
-    face: ENUM(...facesEnum),
-    hour: INTEGER,
-    avgTemperature: FLOAT
+    face: {
+        type: ENUM(...facesEnum),
+        allowNull: false
+    },
+    hour: {
+        type: BIGINT,
+        allowNull: false
+    },
+    avgTemperature: {
+        type: FLOAT, 
+        allowNull: false
+    }
 })
 
 export default HourlyFaceSummary;

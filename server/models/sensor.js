@@ -1,8 +1,8 @@
-import { INTEGER, ENUM } from "sequelize";
-import initializeDatabase from "../util/database.js";
+import { INTEGER, ENUM, BIGINT } from "sequelize";
+import database from "../util/database.js";
 import facesEnum from "../util/facesEnum.js";
 
-const sequelize = initializeDatabase;
+const sequelize = database.sequelize;
 
 const Sensor = sequelize.define("sensor", {
     id: {
@@ -11,9 +11,14 @@ const Sensor = sequelize.define("sensor", {
         allowNull: false,
         primaryKey: true
     },
-    face: ENUM(...facesEnum)
-}, {
-  timestamps: true
-})
+    face: {
+      type: ENUM(...facesEnum),
+      allowNull: false
+    },
+    timestamp: {
+      allowNull: false,
+      type: BIGINT
+    }
+});
 
 export default Sensor;

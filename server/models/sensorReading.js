@@ -1,8 +1,8 @@
-import { INTEGER, ENUM, FLOAT } from "sequelize";
-import initializeDatabase from "../util/database.js";
+import { INTEGER, ENUM, FLOAT, BIGINT } from "sequelize";
+import database from "../util/database.js";
 import facesEnum from "../util/facesEnum.js";
 
-const sequelize = initializeDatabase;
+const sequelize = database.sequelize;
 
 const SensorReading = sequelize.define("sensor-reading", {
     id: {
@@ -11,9 +11,18 @@ const SensorReading = sequelize.define("sensor-reading", {
         allowNull: false,
         primaryKey: true
     },
-    face: ENUM(...facesEnum),
-    timestamp: INTEGER,
-    temperature: FLOAT
+    face: {
+        type: ENUM(...facesEnum),
+        allowNull: false
+    },
+    timestamp: {
+        type: BIGINT,
+        allowNull: false
+    },
+    temperature: {
+        type: FLOAT,
+        allowNull: false
+    }
 })
 
 export default SensorReading;

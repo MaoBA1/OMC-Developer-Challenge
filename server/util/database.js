@@ -1,28 +1,41 @@
-import mysql from 'mysql2/promise';
-import { Sequelize } from 'sequelize';
+import dotenv from "dotenv";
 
-const DB_NAME = 'system-data';
-const DB_USER = 'root';
-const DB_PASS = 'Aa123456!';
-const DB_HOST = 'localhost';
+import mysql from "mysql2/promise";
+import { Sequelize } from "sequelize";
 
-async function initializeDatabase() {
-  const connection = await mysql.createConnection({
-    host: DB_HOST,
-    user: DB_USER,
-    password: DB_PASS,
-  });
+dotenv.config();
 
-  await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;`);
-  await connection.end();
+class Database {
+  constructor(dbHost, dbName, dbUser, dbPass) {
+    this.dbHost = dbHost;
+    this.dbName = dbName;
+    this.dbUser = dbUser;
+    this.dbPass = dbPass;
+    
+    const sequelize = new Sequelize(this.dbName, this.dbUser, this.dbPass, {
+      host: this.dbHost,
+      dialect: "mysql",
+    });
 
-  const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
-    host: DB_HOST,
-    dialect: 'mysql',
-  });
+    this.sequelize = sequelize;
+  }
 
-  return sequelize;
+  async initializeDatabase() {
+    const connection = await mysql.createConnection({
+      host: this.dbHost,
+      user: this.dbUser,
+      password: this.dbPass,
+    });
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${this.dbName}\`;`);
+    await connection.end();
+  }
 }
 
+const db = new Database(
+  process.env.DB_HOST,
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASS
+);
 
-export default await initializeDatabase();
+export default await db;
