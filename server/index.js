@@ -29,20 +29,11 @@ MalfunctionLog.belongsTo(Sensor, { constraints: true, onDelete: "CASCADE" });
 database
   .initializeDatabase()
   .then(() => {
-    database
-    .sequelize
-    .sync()
-    .then(async(result) => {
-      let sensors = await System.getAllSensors();
-      if(sensors.length === 0) {
-        await System.systemInitiator();
-        sensors = await System.getAllSensors();
-      }
-      console.log(sensors.length);
-      // System.sensorReadingGenerator();
-      const sensorLogs = await SensorReading.findAll();
-      console.log(sensorLogs.length);
-      
+    database.sequelize.sync({ force: true }).then(async (result) => {
+      await System.systemInitiator();
+      System.createCronJob(System.logGenerateIntervalWildCard, () => System.sensorReadingGenerator());
+      System.createCronJob(System.checkingIntervalWildCard, () => System.createHourlySummaryForEachFace());
+
       app.listen(port, () => {
         console.log(`Server is listening on ${port}`);
       });
