@@ -78,6 +78,11 @@ class System {
         lastHourLogsData[log.sensorId]["temperatureSum"] += log.temperature;
       }
     }
+    console.log("========================================");    
+    console.log(lastHourLogsData);
+    console.log("========================================");
+
+    
     return lastHourLogsData;
   }
 
