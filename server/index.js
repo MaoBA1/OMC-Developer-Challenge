@@ -23,16 +23,55 @@ const port = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-SensorReading.belongsTo(Sensor, { constraints: true, onDelete: "CASCADE" });
-MalfunctionLog.belongsTo(Sensor, { constraints: true, onDelete: "CASCADE" });
+
+app.get("/api/get_weekly_summary_report", async (req, res) => {
+  console.log("/api/get_weekly_summary_report");
+  const weeklyReport = await System.generateWeeklyReport();
+  return res.json({
+    weeklyReport,
+  });
+});
+
+Sensor.hasMany(SensorReading, { foreignKey: "sensorId" });
+SensorReading.belongsTo(Sensor, {
+  foreignKey: "sensorId",
+  constraints: true,
+  onDelete: "CASCADE",
+});
+
+Sensor.hasMany(MalfunctionLog, { foreignKey: "sensorId" });
+MalfunctionLog.belongsTo(Sensor, {
+  foreignKey: "sensorId",
+  constraints: true,
+  onDelete: "CASCADE",
+});
 
 database
   .initializeDatabase()
   .then(() => {
     database.sequelize.sync({ force: true }).then(async (result) => {
       await System.systemInitiator();
-      System.createCronJob(System.logGenerateIntervalWildCard, () => System.sensorReadingGenerator());
-      System.createCronJob(System.checkingIntervalWildCard, () => System.createHourlySummaryForEachFace());
+      console.log(System.disabledSensors);
+
+      await System.disableSensors(System.disabledSensors);
+      console.log("System initialized");
+      console.log("Waiting for the start of the next full minute...");
+      await new Promise((resolve) => {
+        const interval = setInterval(() => {
+          const now = new Date();
+          if (now.getSeconds() === 0) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 100); // Check every 100ms
+      });
+
+      System.createCronJob(System.logGenerateIntervalWildCard, async () =>
+        System.sensorReadingGenerator()
+      );
+      System.createCronJob(System.checkingIntervalWildCard, async () =>
+        System.createHourlySummaryForEachFace()
+      );
 
       app.listen(port, () => {
         console.log(`Server is listening on ${port}`);

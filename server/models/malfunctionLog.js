@@ -16,7 +16,11 @@ const MalfunctionLog = sequelize.define("malfunction-log", {
     type: BIGINT,
     allowNull: false
   },
-  avgTemperature: {
+  faceAvgTemperature: {
+    type: FLOAT, 
+    allowNull: false
+  },
+  sensorAvgTemperature: {
     type: FLOAT, 
     allowNull: false
   },

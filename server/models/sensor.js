@@ -1,4 +1,4 @@
-import { INTEGER, ENUM, BIGINT } from "sequelize";
+import { INTEGER, ENUM, BIGINT, BOOLEAN } from "sequelize";
 import database from "../util/database.js";
 import facesEnum from "../util/facesEnum.js";
 
@@ -18,6 +18,11 @@ const Sensor = sequelize.define("sensor", {
     timestamp: {
       allowNull: false,
       type: BIGINT
+    },
+    enabled: {
+      type: BOOLEAN,
+      defaultValue: true,
+      allowNull: false,
     }
 });
 

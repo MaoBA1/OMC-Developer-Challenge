@@ -15,6 +15,7 @@ class Database {
     const sequelize = new Sequelize(this.dbName, this.dbUser, this.dbPass, {
       host: this.dbHost,
       dialect: "mysql",
+      logging: false
     });
 
     this.sequelize = sequelize;
