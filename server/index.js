@@ -1,4 +1,5 @@
 import express from "express";
+import path from 'path';
 import dotenv from "dotenv";
 import database from "./util/database.js";
 import Sensor from "./models/sensor.js";
@@ -21,6 +22,12 @@ const port = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve React static files
+app.use(express.static(path.join(process.cwd(), '../client/build')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join('/app/', 'client/build', 'index.html'));
+});
 
 app.get("/api/get_weekly_summary_report", async (req, res) => {
   console.log("/api/get_weekly_summary_report");
@@ -83,7 +90,7 @@ database
       );
       System.createCronJob(System.reportingIntervalWildCard, async() => System.deleteOldData());
 
-      app.listen(port, () => {
+      app.listen(port, '0.0.0.0', () => {
         console.log(`Server is listening on ${port}`);
       });
     });

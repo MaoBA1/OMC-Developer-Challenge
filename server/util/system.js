@@ -288,9 +288,9 @@ class System {
         const hourTimestamp = summary.hour;
 
         if (mode === "test") {
-          const totalTestDuration = this.reportingThreshold; // 5040 seconds
-          const simulatedDayDuration = totalTestDuration / 7; // 720 seconds = 12 minutes per simulated day
-          const simulatedHourDuration = simulatedDayDuration / 24; // 30 seconds per simulated hour
+          const totalTestDuration = this.reportingThreshold; 
+          const simulatedDayDuration = totalTestDuration / 7; 
+          const simulatedHourDuration = simulatedDayDuration / 24;
 
           const relativeSec = hourTimestamp - startTime;
 
@@ -309,7 +309,7 @@ class System {
 
           report[day][hour].push(summary.dataValues);
         } else {
-          // Real mode (production)
+          
           const hourDate = new Date(hourTimestamp * 1000);
           let day = hourDate.toLocaleDateString("en-US", {
             weekday: "long",
@@ -374,8 +374,7 @@ class System {
 
         for (const summary of faceSummaries) {
           const hourTimestamp = summary.hour;
-
-          // Format simulated or real time
+          
           let day, hour;
           if (mode === "test") {
             const totalDuration = this.reportingThreshold;
