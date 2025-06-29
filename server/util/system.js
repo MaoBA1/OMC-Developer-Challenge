@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { Op, where } from "sequelize";
 import HourlyFaceSummary from "../models/hourlyFaceSummary.js";
 import MalfunctionLog from "../models/malfunctionLog.js";
 import Sensor from "../models/sensor.js";
@@ -7,33 +7,28 @@ import facesEnum from "./facesEnum.js";
 import { generateFakeTemperature, getUnixSeconds } from "./functions.js";
 import cron from "node-cron";
 
-// Every minuet 0 * * * *
-// Every week 0 0 * * 0
+  
 class System {
-  // static sensorsCount = 10000;
-  // static checkingIntervalTime = 3600;
-  // static sensorInactivityThreshold = 24 * 60 * 60;
-  // static reportingThreshold = 7 * 24 * 60 * 60;
-  // static logGenerateIntervalWildCard = "* * * * * *";
-  // static checkingIntervalWildCard = "0 * * * *";
-  // static reportingIntervalWildcard = "0 0 * * 0";
-  // static deviationPercentageLimit = 0.2;
-
   // values for testing
-  static sensorsCount = 12; // 3 sensors per face (north, south, east, west)
-  static checkingIntervalTime = 60; // 60 seconds instead of 3600 seconds (1 hour)
-  static sensorInactivityThreshold = 2 * 60;
-  static reportingThreshold = 2 * 60 * 60;
-  static logGenerateIntervalWildCard = "* * * * * *"; // every second
-  static checkingIntervalWildCard = "* * * * *"; // every minute
-  static reportingIntervalWildcard = "*/5 * * * *"; // every 5 minutes (simulates weekly report)
-  static deviationPercentageLimit = 0.03;
+  // static sensorsCount = 12;
+  // static checkingIntervalTime = 30; // 30s = 1 simulated "hour"
+  // static sensorInactivityThreshold = 40; // Must be greater than checkingIntervalTime
+  // static reportingThreshold = 7 * 24 * 30; // 84 minutes = 7 simulated days , 12 minutes = 1 simulated day
+  // static reportingIntervalWildCard = "0 */84 * * * *";
+  // static logGenerateIntervalWildCard = "* * * * * *"; // 1s interval for sensor logs
+  // static checkingIntervalWildCard = "*/30 * * * * *"; // Every 30s = 1 simulated hour
+  // static deviationPercentageLimit = 0.03;
 
-  static disabledSensors = true ? [] : Array.from(
-    { length: this.sensorsCount },
-    (_, i) => i + 1
-  )
-  // .filter((i) => i === 1 || i === 3 || i === 5);
+  static sensorsCount = 10000;
+  static checkingIntervalTime = 3600;
+  static sensorInactivityThreshold = 24 * 60 * 60;
+  static reportingThreshold = 7 * 24 * 60 * 60;
+  static reportingIntervalWildCard = "0 0 * * 0";
+  static logGenerateIntervalWildCard = "* * * * * *";
+  static checkingIntervalWildCard = "0 * * * *";
+  static deviationPercentageLimit = 0.2;
+
+
 
   // Creating all the sensors for each face of the building
   static async systemInitiator() {
@@ -54,11 +49,24 @@ class System {
     }
   }
 
-  static async disableSensors(sensorsIds) {
-    await Sensor.update(
-      { enabled: false },
-      { where: { id: { [Op.in]: sensorsIds } } }
-    );
+  static async toggleSensor(sensorId) {
+    try {
+      const sensor = await Sensor.findByPk(sensorId);
+
+      if (!sensor) {
+        throw new Error(`Sensor with ID ${sensorId} not found`);
+      }
+
+      const newState = !sensor.enabled;
+
+      await Sensor.update({ enabled: newState }, { where: { id: sensorId } });
+      console.log(
+        `Sensor ${sensorId} is now ${newState ? "enabled" : "disabled"}`
+      );
+      return await this.getAllSensorsGroupedByFace();      
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   static async sensorReadingGenerator() {
@@ -257,51 +265,202 @@ class System {
     }
   }
 
-  static async generateWeeklyReport() {
+  static async generateWeeklyReport(mode = "live") {
     try {
       const now = getUnixSeconds();
-      const oneWeekAgo = now - this.reportingThreshold;
+      const startTime = now - this.reportingThreshold;
 
       const summaries = await HourlyFaceSummary.findAll({
         where: {
           hour: {
-            [Op.gt]: oneWeekAgo,
+            [Op.gt]: startTime,
             [Op.lte]: now,
           },
         },
         order: [["hour", "ASC"]],
       });
 
+      if (summaries.length === 0) return {};
+
       const report = {};
 
       for (const summary of summaries) {
-        const hourTimestamp = summary.hour; // UNIX seconds
-        const hourDate = new Date(hourTimestamp * 1000);
+        const hourTimestamp = summary.hour;
 
-        const dayStart = new Date(hourDate);
-        dayStart.setUTCHours(0, 0, 0, 0);
-        const dayKey = dayStart.toISOString(); // Start of the day
+        if (mode === "test") {
+          const totalTestDuration = this.reportingThreshold; // 5040 seconds
+          const simulatedDayDuration = totalTestDuration / 7; // 720 seconds = 12 minutes per simulated day
+          const simulatedHourDuration = simulatedDayDuration / 24; // 30 seconds per simulated hour
 
-        const hourStart = new Date(hourDate);
-        hourStart.setUTCMinutes(0, 0, 0);
-        const hourKey = hourStart.toISOString(); // Start of the hour
+          const relativeSec = hourTimestamp - startTime;
 
-        if (!report[dayKey]) {
-          report[dayKey] = {};
+          const simulatedDayIndex = Math.floor(
+            relativeSec / simulatedDayDuration
+          );
+          const simulatedHourInDay = Math.floor(
+            (relativeSec % simulatedDayDuration) / simulatedHourDuration
+          );
+
+          const day = `Simulated Day ${Math.abs(simulatedDayIndex - 7)}`;
+          const hour = simulatedHourInDay.toString().padStart(2, "0") + ":00";
+
+          if (!report[day]) report[day] = {};
+          if (!report[day][hour]) report[day][hour] = [];
+
+          report[day][hour].push(summary.dataValues);
+        } else {
+          // Real mode (production)
+          const hourDate = new Date(hourTimestamp * 1000);
+          let day = hourDate.toLocaleDateString("en-US", {
+            weekday: "long",
+          });
+          let hour = hourDate.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+
+          if (!report[day]) report[day] = {};
+          if (!report[day][hour]) report[day][hour] = [];
+
+          report[day][hour].push(summary.dataValues);
         }
-
-        if (!report[dayKey][hourKey]) {
-          report[dayKey][hourKey] = [];
-        }
-
-        report[dayKey][hourKey].push(summary.dataValues);
       }
 
+      for (const day in report) {
+        const sortedHours = Object.keys(report[day]).sort(); // ascending order
+        const sortedHourMap = {};
+
+        for (const hour of sortedHours) {
+          sortedHourMap[hour] = report[day][hour];
+        }
+
+        report[day] = sortedHourMap;
+      }
       return report;
     } catch (error) {
       console.error("Failed to generate weekly report:", error);
       return {};
     }
+  }
+
+  static async generateFaceMalfunctionReport(mode = "live") {
+    try {
+      const now = getUnixSeconds();
+      const startTime = now - this.reportingThreshold;
+
+      const summaries = await HourlyFaceSummary.findAll({
+        where: {
+          hour: { [Op.gt]: startTime, [Op.lte]: now },
+        },
+        order: [["hour", "ASC"]],
+        raw: true,
+      });
+
+      const malfunctions = await MalfunctionLog.findAll({
+        where: {
+          loggedAt: { [Op.gt]: startTime, [Op.lte]: now },
+        },
+        order: [["loggedAt", "ASC"]],
+        raw: true,
+      });
+
+      const faceReports = [];
+
+      for (const face of facesEnum) {
+        const report = {};
+        const faceSummaries = summaries.filter((s) => s.face === face);
+        const faceMalfunctions = malfunctions.filter((m) => m.face === face);
+
+        for (const summary of faceSummaries) {
+          const hourTimestamp = summary.hour;
+
+          // Format simulated or real time
+          let day, hour;
+          if (mode === "test") {
+            const totalDuration = this.reportingThreshold;
+            const simulatedDayDuration = totalDuration / 7;
+            const simulatedHourDuration = simulatedDayDuration / 24;
+            const relativeSec = hourTimestamp - startTime;
+            const simulatedDayIndex = Math.floor(
+              relativeSec / simulatedDayDuration
+            );
+            const simulatedHourInDay = Math.floor(
+              (relativeSec % simulatedDayDuration) / simulatedHourDuration
+            );
+            day = `Simulated Day ${Math.abs(simulatedDayIndex - 7)}`;
+            hour = simulatedHourInDay.toString().padStart(2, "0") + ":00";
+          } else {
+            const date = new Date(hourTimestamp * 1000);
+            day = date.toLocaleDateString("en-US", { weekday: "long" });
+            hour = date.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            });
+          }
+
+          if (!report[day]) report[day] = {};
+          if (!report[day][hour])
+            report[day][hour] = {
+              summary: null,
+              malfunctions: [],
+            };
+
+          report[day][hour].summary = summary;
+
+          const relatedMalfunctions = faceMalfunctions.filter(
+            (m) => m.hour === summary.hour
+          );
+
+          report[day][hour].malfunctions.push(...relatedMalfunctions);
+        }
+
+        faceReports.push({
+          face,
+          days: report,
+        });
+      }
+
+      return faceReports;
+    } catch (error) {
+      console.error("Failed to generate face malfunction report:", error);
+      return [];
+    }
+  }
+
+  static async deleteOldData() {
+    const deleteFrom = getUnixSeconds() - this.reportingThreshold;
+    try {
+      await HourlyFaceSummary.destroy({
+        where: {
+          hour: {
+            [Op.lt]: deleteFrom,
+          },
+        },
+      });
+
+      await SensorReading.destroy({
+        where: {
+          timestamp: {
+            [Op.lt]: deleteFrom,
+          },
+        },
+      });
+      console.log("Old data was removed");
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  static async getAllSensorsGroupedByFace() {
+    const sensors = await Sensor.findAll();
+    return facesEnum.map((face) => {
+      return {
+        face,
+        sensors: sensors.filter((sensor) => sensor.face === face),
+      };
+    });
   }
 }
 

@@ -3,9 +3,7 @@ import dotenv from "dotenv";
 import database from "./util/database.js";
 import Sensor from "./models/sensor.js";
 import SensorReading from "./models/sensorReading.js";
-import HourlyFaceSummary from "./models/hourlyFaceSummary.js";
 import MalfunctionLog from "./models/malfunctionLog.js";
-import { getUnixSeconds } from "./util/functions.js";
 import System from "./util/system.js";
 
 dotenv.config();
@@ -26,9 +24,34 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get("/api/get_weekly_summary_report", async (req, res) => {
   console.log("/api/get_weekly_summary_report");
-  const weeklyReport = await System.generateWeeklyReport();
+  const weeklyReport = await System.generateWeeklyReport("test");
   return res.json({
     weeklyReport,
+  });
+});
+
+app.get("/api/get_weekly_malfunctioning_summary_report", async (req, res) => {
+  console.log("/api/get_weekly_malfunctioning_summary_report");
+  const weeklyMalfunctioningReport = await System.generateFaceMalfunctionReport("test");
+  return res.json({
+    weeklyMalfunctioningReport,
+  });
+});
+
+app.get("/api/get_all_sensor_grouped_by_face", async (req, res) => {
+  console.log("/api/get_weekly_malfunctioning_summary_report");
+  const sensors = await System.getAllSensorsGroupedByFace();
+  return res.json({
+    sensors,
+  });
+});
+
+app.post("/api/toggle_sensor_state", async (req, res) => {
+  console.log("/api/toggle_sensor_state");
+  const { sensorId } = req.body;
+  const sensors = await System.toggleSensor(sensorId);
+  return res.json({
+    sensors,
   });
 });
 
@@ -50,21 +73,7 @@ database
   .initializeDatabase()
   .then(() => {
     database.sequelize.sync({ force: true }).then(async (result) => {
-      await System.systemInitiator();
-      console.log(System.disabledSensors);
-
-      await System.disableSensors(System.disabledSensors);
-      console.log("System initialized");
-      console.log("Waiting for the start of the next full minute...");
-      await new Promise((resolve) => {
-        const interval = setInterval(() => {
-          const now = new Date();
-          if (now.getSeconds() === 0) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 100); // Check every 100ms
-      });
+      await System.systemInitiator();     
 
       System.createCronJob(System.logGenerateIntervalWildCard, async () =>
         System.sensorReadingGenerator()
@@ -72,6 +81,7 @@ database
       System.createCronJob(System.checkingIntervalWildCard, async () =>
         System.createHourlySummaryForEachFace()
       );
+      System.createCronJob(System.reportingIntervalWildCard, async() => System.deleteOldData());
 
       app.listen(port, () => {
         console.log(`Server is listening on ${port}`);
