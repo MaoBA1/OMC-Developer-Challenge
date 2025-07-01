@@ -15,8 +15,6 @@ const port = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve React static files
-app.use(express.static(path.join(process.cwd(), '../client/build')));
 
 app.get('*', (req, res) => {
   res.sendFile(path.join('/app/', 'client/build', 'index.html'));
