@@ -8,13 +8,6 @@ import MalfunctionLog from "./models/malfunctionLog.js";
 import System from "./util/system.js";
 
 dotenv.config();
-console.log(
-  process.env.PORT,
-  process.env.DB_HOST,
-  process.env.DB_USER,
-  process.env.DB_PASS,
-  process.env.DB_NAME
-);
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -25,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 // Serve React static files
 app.use(express.static(path.join(process.cwd(), '../client/build')));
 
-app.get('/', (req, res) => {
+app.get('*', (req, res) => {
   res.sendFile(path.join('/app/', 'client/build', 'index.html'));
 });
 

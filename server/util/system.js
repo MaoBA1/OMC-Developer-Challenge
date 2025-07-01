@@ -10,23 +10,23 @@ import cron from "node-cron";
   
 class System {
   // values for testing
-  // static sensorsCount = 12;
-  // static checkingIntervalTime = 30; // 30s = 1 simulated "hour"
-  // static sensorInactivityThreshold = 40; // Must be greater than checkingIntervalTime
-  // static reportingThreshold = 7 * 24 * 30; // 84 minutes = 7 simulated days , 12 minutes = 1 simulated day
-  // static reportingIntervalWildCard = "0 */84 * * * *";
-  // static logGenerateIntervalWildCard = "* * * * * *"; // 1s interval for sensor logs
-  // static checkingIntervalWildCard = "*/30 * * * * *"; // Every 30s = 1 simulated hour
-  // static deviationPercentageLimit = 0.03;
+  static sensorsCount = 12;
+  static checkingIntervalTime = 30; // 30s = 1 simulated "hour"
+  static sensorInactivityThreshold = 40; // Must be greater than checkingIntervalTime
+  static reportingThreshold = 7 * 24 * 30; // 84 minutes = 7 simulated days , 12 minutes = 1 simulated day
+  static reportingIntervalWildCard = "0 */84 * * * *";
+  static logGenerateIntervalWildCard = "* * * * * *"; // 1s interval for sensor logs
+  static checkingIntervalWildCard = "*/30 * * * * *"; // Every 30s = 1 simulated hour
+  static deviationPercentageLimit = 0.03;
 
-  static sensorsCount = 10000;
-  static checkingIntervalTime = 3600;
-  static sensorInactivityThreshold = 24 * 60 * 60;
-  static reportingThreshold = 7 * 24 * 60 * 60;
-  static reportingIntervalWildCard = "0 0 * * 0";
-  static logGenerateIntervalWildCard = "* * * * * *";
-  static checkingIntervalWildCard = "0 * * * *";
-  static deviationPercentageLimit = 0.2;
+  // static sensorsCount = 10000;
+  // static checkingIntervalTime = 3600;
+  // static sensorInactivityThreshold = 24 * 60 * 60;
+  // static reportingThreshold = 7 * 24 * 60 * 60;
+  // static reportingIntervalWildCard = "0 0 * * 0";
+  // static logGenerateIntervalWildCard = "* * * * * *";
+  // static checkingIntervalWildCard = "0 * * * *";
+  // static deviationPercentageLimit = 0.2;
 
 
 
